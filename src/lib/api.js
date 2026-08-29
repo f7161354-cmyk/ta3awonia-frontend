@@ -1,6 +1,8 @@
 const TOKEN_KEY = 'taawniya_token';
 const USER_KEY = 'taawniya_user';
 
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
 export function getToken() {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
@@ -13,7 +15,6 @@ export function setToken(token) {
 export function clearToken() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(TOKEN_KEY);
-    // نحتفظ بـ username باش localStorage ديال البيانات يبقى مربوط بنفس الحساب
   }
 }
 
@@ -43,12 +44,18 @@ export function clearStoredUser() {
   if (typeof window !== 'undefined') localStorage.removeItem(USER_KEY);
 }
 
+function buildUrl(url) {
+  if (!url) return API_BASE;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE}${url.startsWith('/') ? url : `/${url}`}`;
+}
+
 async function request(method, url, body) {
   const headers = { 'Content-Type': 'application/json' };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(url, {
+  const res = await fetch(buildUrl(url), {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -76,12 +83,11 @@ export const api = {
   del: (url) => request('DELETE', url),
 };
 
-// تحميل CSV محمي (يتطلب token في الهيدر)
 export async function downloadCsv(url, filename) {
-  const res = await fetch(url, {
+  const res = await fetch(buildUrl(url), {
     headers: { Authorization: `Bearer ${getToken()}` },
   });
-  if (!res.ok) throw new Error('مشكل فالتحميل');
+  if (!res.ok) throw new Error('خطأ في التحميل');
   const blob = await res.blob();
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
